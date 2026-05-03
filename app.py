@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 from pypdf import PdfReader
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://applymate-zyff.onrender.com"
 
 st.set_page_config(
     page_title="AI Job Search Agent",
