@@ -5,71 +5,128 @@ from pypdf import PdfReader
 API_URL = "https://applymate-zyff.onrender.com"
 
 st.set_page_config(
-    page_title="AI Job Search Agent",
+    page_title="ApplyMate AI",
+    page_icon="🚀",
     layout="wide"
 )
 
-st.title("AI Job Search Agent")
-st.write(
-    "Analyze resume-job fit, generate tailored emails and cover letters, "
-    "create follow-ups, and track job applications."
+st.markdown("""
+<style>
+.main-title {
+    font-size: 56px;
+    font-weight: 800;
+    margin-bottom: 0px;
+}
+.subtitle {
+    font-size: 20px;
+    color: #b5b5b5;
+    margin-bottom: 35px;
+}
+.card {
+    padding: 22px;
+    border-radius: 16px;
+    background-color: #1e1e2f;
+    border: 1px solid #33334d;
+    margin-bottom: 20px;
+}
+.small-muted {
+    color: #a3a3a3;
+    font-size: 14px;
+}
+.result-box {
+    padding: 24px;
+    border-radius: 16px;
+    background-color: #111827;
+    border: 1px solid #374151;
+    white-space: pre-wrap;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+st.markdown('<div class="main-title">🚀 ApplyMate AI</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="subtitle">Analyze job fit, generate tailored application materials, and track your job search in one place.</div>',
+    unsafe_allow_html=True
 )
 
 
-# ---------- PDF Extraction ----------
+def extract_pdf_text(uploaded_file):
+    if uploaded_file is None:
+        return ""
+
+    reader = PdfReader(uploaded_file)
+    text = ""
+
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+
+    return text.strip()
+
+
 def get_resume_text(key_prefix):
     uploaded_resume = st.file_uploader(
-        "Upload resume PDF",
+        "Upload your resume PDF",
         type=["pdf"],
         key=f"{key_prefix}_pdf"
     )
 
-    if uploaded_resume is not None:
-        reader = PdfReader(uploaded_resume)
-        text = ""
+    if uploaded_resume:
+        text = extract_pdf_text(uploaded_resume)
+        st.success("Resume uploaded and processed successfully.")
 
-        for page in reader.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-
-        st.success("Resume uploaded and processed ✅")
-
-        # Optional preview
         with st.expander("Preview extracted resume"):
-            st.write(text[:1500])
+            st.write(text[:2000])
 
         return text
-    else:
-        st.warning("Please upload your resume PDF")
-        return ""
+
+    st.info("Upload your resume PDF to continue.")
+    return ""
 
 
-# ---------- Tabs ----------
+def show_result(title, content):
+    st.markdown(f"### {title}")
+    st.markdown(
+        f"""
+        <div class="result-box">
+        {content}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Analyze Job",
-    "Generate Email",
-    "Cover Letter",
-    "Follow-up Email",
-    "Job Tracker"
+    "📊 Analyze Job",
+    "📧 Generate Email",
+    "📝 Cover Letter",
+    "🔁 Follow-up Email",
+    "📌 Job Tracker"
 ])
 
 
-# ---------- Analyze ----------
 with tab1:
-    st.header("Analyze Resume vs Job Description")
+    st.markdown("## 📊 Resume vs Job Description")
 
-    resume_text = get_resume_text("analyze")
+    col1, col2 = st.columns([1, 1])
 
-    job_description = st.text_area(
-        "Paste job description",
-        height=250,
-        key="analyze_jd"
-    )
+    with col1:
+        st.markdown("### 1. Resume")
+        resume_text = get_resume_text("analyze")
 
-    if st.button("Analyze Match"):
+    with col2:
+        st.markdown("### 2. Job Description")
+        job_description = st.text_area(
+            "Paste the job description here",
+            height=320,
+            key="analyze_jd"
+        )
+
+    if st.button("🚀 Analyze Match", use_container_width=True):
         if resume_text and job_description:
-            with st.spinner("Analyzing..."):
+            with st.spinner("Analyzing your resume against the job description..."):
                 response = requests.post(
                     f"{API_URL}/analyze",
                     json={
@@ -79,32 +136,29 @@ with tab1:
                 )
 
             if response.status_code == 200:
-                st.subheader("Analysis Result")
-                st.write(response.json()["analysis"])
+                show_result("Analysis Result", response.json()["analysis"])
             else:
-                st.error("Something went wrong.")
+                st.error("Something went wrong while analyzing.")
         else:
-            st.warning("Please provide both resume and job description.")
+            st.warning("Please upload a resume and paste a job description.")
 
 
-# ---------- Email ----------
 with tab2:
-    st.header("Generate Application Email")
+    st.markdown("## 📧 Generate Application Email")
 
-    email_resume = get_resume_text("email")
+    col1, col2 = st.columns(2)
 
-    email_jd = st.text_area(
-        "Job description",
-        height=220,
-        key="email_jd"
-    )
+    with col1:
+        email_resume = get_resume_text("email")
+        company_name = st.text_input("Company name", key="email_company")
 
-    company_name = st.text_input("Company name", key="email_company")
-    role_title = st.text_input("Role title", key="email_role")
+    with col2:
+        role_title = st.text_input("Role title", key="email_role")
+        email_jd = st.text_area("Job description", height=260, key="email_jd")
 
-    if st.button("Generate Email"):
+    if st.button("✨ Generate Email", use_container_width=True):
         if email_resume and email_jd and company_name and role_title:
-            with st.spinner("Generating email..."):
+            with st.spinner("Generating tailored email..."):
                 response = requests.post(
                     f"{API_URL}/generate-email",
                     json={
@@ -116,30 +170,27 @@ with tab2:
                 )
 
             if response.status_code == 200:
-                st.subheader("Generated Email")
-                st.write(response.json()["email"])
+                show_result("Generated Email", response.json()["email"])
             else:
                 st.error("Something went wrong.")
         else:
             st.warning("Please fill all fields.")
 
 
-# ---------- Cover Letter ----------
 with tab3:
-    st.header("Generate Cover Letter")
+    st.markdown("## 📝 Generate Cover Letter")
 
-    cl_resume = get_resume_text("cover_letter")
+    col1, col2 = st.columns(2)
 
-    cl_jd = st.text_area(
-        "Job description",
-        height=220,
-        key="cl_jd"
-    )
+    with col1:
+        cl_resume = get_resume_text("cover_letter")
+        cl_company = st.text_input("Company name", key="cl_company")
 
-    cl_company = st.text_input("Company name", key="cl_company")
-    cl_role = st.text_input("Role title", key="cl_role")
+    with col2:
+        cl_role = st.text_input("Role title", key="cl_role")
+        cl_jd = st.text_area("Job description", height=260, key="cl_jd")
 
-    if st.button("Generate Cover Letter"):
+    if st.button("📝 Generate Cover Letter", use_container_width=True):
         if cl_resume and cl_jd and cl_company and cl_role:
             with st.spinner("Generating cover letter..."):
                 response = requests.post(
@@ -153,29 +204,33 @@ with tab3:
                 )
 
             if response.status_code == 200:
-                st.subheader("Generated Cover Letter")
-                st.write(response.json()["cover_letter"])
+                show_result("Generated Cover Letter", response.json()["cover_letter"])
             else:
                 st.error("Something went wrong.")
         else:
             st.warning("Please fill all fields.")
 
 
-# ---------- Follow-up ----------
 with tab4:
-    st.header("Generate Follow-up Email")
+    st.markdown("## 🔁 Generate Follow-up Email")
 
-    follow_company = st.text_input("Company name", key="follow_company")
-    follow_role = st.text_input("Role title", key="follow_role")
+    col1, col2, col3 = st.columns(3)
 
-    days_since_applied = st.number_input(
-        "Days since applied",
-        min_value=1,
-        max_value=60,
-        value=7
-    )
+    with col1:
+        follow_company = st.text_input("Company name", key="follow_company")
 
-    if st.button("Generate Follow-up Email"):
+    with col2:
+        follow_role = st.text_input("Role title", key="follow_role")
+
+    with col3:
+        days_since_applied = st.number_input(
+            "Days since applied",
+            min_value=1,
+            max_value=60,
+            value=7
+        )
+
+    if st.button("📨 Generate Follow-up", use_container_width=True):
         if follow_company and follow_role:
             with st.spinner("Generating follow-up email..."):
                 response = requests.post(
@@ -188,22 +243,26 @@ with tab4:
                 )
 
             if response.status_code == 200:
-                st.subheader("Generated Follow-up Email")
-                st.write(response.json()["follow_up_email"])
+                show_result("Generated Follow-up Email", response.json()["follow_up_email"])
             else:
                 st.error("Something went wrong.")
         else:
             st.warning("Please fill company and role.")
 
 
-# ---------- Job Tracker ----------
 with tab5:
-    st.header("Job Tracker")
+    st.markdown("## 📌 Job Tracker")
 
-    st.subheader("Save New Job")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("### Save New Job")
 
-    jt_company = st.text_input("Company name", key="jt_company")
-    jt_role = st.text_input("Role title", key="jt_role")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        jt_company = st.text_input("Company name", key="jt_company")
+
+    with col2:
+        jt_role = st.text_input("Role title", key="jt_role")
 
     jt_description = st.text_area(
         "Job description",
@@ -217,7 +276,7 @@ with tab5:
         key="jt_status"
     )
 
-    if st.button("Save Job"):
+    if st.button("💾 Save Job", use_container_width=True):
         if jt_company and jt_role and jt_description:
             response = requests.post(
                 f"{API_URL}/jobs",
@@ -236,10 +295,12 @@ with tab5:
         else:
             st.warning("Please fill company, role, and job description.")
 
-    st.divider()
-    st.subheader("Saved Jobs")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("Refresh Jobs"):
+    st.divider()
+    st.markdown("### Saved Jobs")
+
+    if st.button("🔄 Refresh Jobs", use_container_width=True):
         response = requests.get(f"{API_URL}/jobs")
 
         if response.status_code == 200:
@@ -250,7 +311,7 @@ with tab5:
             else:
                 for job in jobs:
                     with st.expander(
-                        f"{job['company_name']} | {job['role_title']} | {job['status']}"
+                        f"🏢 {job['company_name']} | {job['role_title']} | {job['status']}"
                     ):
                         st.write(f"**Job ID:** {job['id']}")
                         st.write(f"**Company:** {job['company_name']}")
@@ -258,3 +319,36 @@ with tab5:
                         st.write(f"**Status:** {job['status']}")
                         st.write("**Job Description:**")
                         st.write(job["job_description"])
+
+                        new_status = st.selectbox(
+                            "Update status",
+                            ["saved", "applied", "interview", "rejected", "offer"],
+                            key=f"status_{job['id']}"
+                        )
+
+                        col_update, col_delete = st.columns(2)
+
+                        with col_update:
+                            if st.button("Update Status", key=f"update_{job['id']}"):
+                                update_response = requests.put(
+                                    f"{API_URL}/jobs/{job['id']}/status",
+                                    json={"status": new_status}
+                                )
+
+                                if update_response.status_code == 200:
+                                    st.success("Status updated.")
+                                else:
+                                    st.error("Could not update status.")
+
+                        with col_delete:
+                            if st.button("Delete Job", key=f"delete_{job['id']}"):
+                                delete_response = requests.delete(
+                                    f"{API_URL}/jobs/{job['id']}"
+                                )
+
+                                if delete_response.status_code == 200:
+                                    st.success("Job deleted. Refresh jobs.")
+                                else:
+                                    st.error("Could not delete job.")
+        else:
+            st.error("Could not fetch jobs.")
