@@ -45,3 +45,18 @@ ai-job-search-agent/
 ├── .env
 ├── .gitignore
 └── README.md
+
+
+## 🧠 System Architecture
+
+User
+  ↓
+Streamlit Frontend (UI)
+  ↓  HTTP Request (JSON)
+FastAPI Backend (Render)
+  ↓
+OpenAI API (LLM Processing)
+  ↓
+Response (Analysis / Email / Cover Letter)
+  ↓
+Streamlit UI (Display Results)
